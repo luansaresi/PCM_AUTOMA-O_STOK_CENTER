@@ -1,0 +1,930 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>PCM — Controle de Manutenção</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@3.31.0/dist/tabler-icons.min.css" />
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.js"></script>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --navy:       #0c1f3f;
+      --navy-mid:   #143260;
+      --blue:       #1a5fa8;
+      --blue-light: #dbeafe;
+      --accent:     #f59e0b;
+      --green:      #059669;
+      --green-light:#dcfce7;
+      --red:        #dc2626;
+      --red-light:  #fee2e2;
+      --amber-light:#fef3c7;
+      --amber-dark: #92400e;
+      --bg:         #f0f4f8;
+      --surface:    #ffffff;
+      --surface2:   #f7f9fc;
+      --border:     #e2e8f0;
+      --text:       #0f172a;
+      --muted:      #64748b;
+      --radius-sm:  6px;
+      --radius-md:  10px;
+      --radius-lg:  14px;
+    }
+
+    body {
+      font-family: 'DM Sans', sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      min-height: 100vh;
+    }
+
+    /* ── SIDEBAR ── */
+    .layout { display: flex; min-height: 100vh; }
+
+    .sidebar {
+      width: 220px;
+      min-width: 220px;
+      background: var(--navy);
+      display: flex;
+      flex-direction: column;
+      position: sticky;
+      top: 0;
+      height: 100vh;
+      overflow-y: auto;
+    }
+
+    .sidebar-logo {
+      padding: 22px 20px 16px;
+      border-bottom: 1px solid rgba(255,255,255,.08);
+    }
+    .sidebar-logo h1 {
+      font-size: 16px;
+      font-weight: 600;
+      color: #fff;
+      letter-spacing: .3px;
+    }
+    .sidebar-logo p {
+      font-size: 11px;
+      color: rgba(255,255,255,.45);
+      margin-top: 3px;
+      line-height: 1.4;
+    }
+
+    .nav { padding: 12px 0; flex: 1; }
+    .nav-label {
+      font-size: 10px;
+      font-weight: 500;
+      color: rgba(255,255,255,.3);
+      text-transform: uppercase;
+      letter-spacing: 1px;
+      padding: 12px 20px 4px;
+    }
+
+    .nav-item {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      padding: 9px 20px;
+      font-size: 13px;
+      color: rgba(255,255,255,.6);
+      cursor: pointer;
+      border: none;
+      background: none;
+      width: 100%;
+      text-align: left;
+      border-left: 3px solid transparent;
+      transition: all .15s;
+    }
+    .nav-item:hover { color: #fff; background: rgba(255,255,255,.06); }
+    .nav-item.active {
+      color: #fff;
+      background: rgba(26,95,168,.35);
+      border-left-color: var(--accent);
+      font-weight: 500;
+    }
+    .nav-item i { font-size: 16px; opacity: .85; }
+
+    .sidebar-footer {
+      padding: 14px 20px;
+      border-top: 1px solid rgba(255,255,255,.08);
+      font-size: 11px;
+      color: rgba(255,255,255,.3);
+    }
+
+    /* ── MAIN ── */
+    .main { flex: 1; display: flex; flex-direction: column; min-width: 0; }
+
+    .topbar {
+      background: var(--surface);
+      border-bottom: 1px solid var(--border);
+      padding: 14px 28px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      position: sticky;
+      top: 0;
+      z-index: 10;
+    }
+    .topbar-title { font-size: 15px; font-weight: 600; color: var(--text); }
+    .topbar-sub { font-size: 12px; color: var(--muted); margin-top: 1px; }
+    .topbar-badge {
+      background: var(--blue-light);
+      color: var(--blue);
+      font-size: 11px;
+      font-weight: 500;
+      padding: 4px 10px;
+      border-radius: 20px;
+      display: flex;
+      align-items: center;
+      gap: 5px;
+    }
+
+    /* ── PANELS ── */
+    .panel { display: none; padding: 24px 28px; animation: fadeIn .2s ease; }
+    .panel.active { display: block; }
+    @keyframes fadeIn { from { opacity: 0; transform: translateY(4px); } to { opacity: 1; transform: translateY(0); } }
+
+    /* ── SECTION TITLE ── */
+    .section-title {
+      font-size: 13px;
+      font-weight: 500;
+      color: var(--muted);
+      text-transform: uppercase;
+      letter-spacing: .6px;
+      margin-bottom: 14px;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+    .section-title i { color: var(--blue); font-size: 15px; }
+
+    /* ── METRIC GRID ── */
+    .metric-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+      gap: 12px;
+      margin-bottom: 22px;
+    }
+    .metric-card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-md);
+      padding: 14px 16px;
+      transition: box-shadow .15s;
+    }
+    .metric-card:hover { box-shadow: 0 2px 8px rgba(0,0,0,.06); }
+    .metric-icon { font-size: 18px; margin-bottom: 8px; }
+    .metric-label { font-size: 11px; color: var(--muted); font-weight: 500; }
+    .metric-value { font-size: 26px; font-weight: 600; margin-top: 2px; }
+    .metric-sub { font-size: 11px; color: var(--muted); margin-top: 2px; }
+    .metric-card.ok .metric-value { color: var(--green); }
+    .metric-card.warn .metric-value { color: var(--accent); }
+    .metric-card.danger .metric-value { color: var(--red); }
+    .metric-card.info .metric-value { color: var(--blue); }
+
+    /* ── CHART GRID ── */
+    .chart-row { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; margin-bottom: 20px; }
+    .chart-card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-md);
+      padding: 16px;
+    }
+    .chart-title {
+      font-size: 12px;
+      font-weight: 500;
+      color: var(--muted);
+      text-transform: uppercase;
+      letter-spacing: .5px;
+      margin-bottom: 10px;
+      display: flex;
+      align-items: center;
+      gap: 5px;
+    }
+    .chart-title i { color: var(--blue); font-size: 14px; }
+    .chart-legend { display: flex; gap: 14px; flex-wrap: wrap; margin-bottom: 10px; font-size: 11px; color: var(--muted); }
+    .legend-dot { display: inline-block; width: 9px; height: 9px; border-radius: 2px; margin-right: 4px; vertical-align: middle; }
+
+    /* ── TABLE ── */
+    .table-wrap {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-md);
+      overflow: hidden;
+      overflow-x: auto;
+    }
+    .data-table { width: 100%; border-collapse: collapse; font-size: 13px; min-width: 600px; }
+    .data-table th {
+      text-align: left;
+      padding: 10px 14px;
+      font-size: 11px;
+      font-weight: 500;
+      color: var(--muted);
+      text-transform: uppercase;
+      letter-spacing: .5px;
+      border-bottom: 1px solid var(--border);
+      background: var(--surface2);
+      white-space: nowrap;
+    }
+    .data-table td {
+      padding: 10px 14px;
+      border-bottom: 1px solid var(--border);
+      color: var(--text);
+      vertical-align: middle;
+    }
+    .data-table tr:last-child td { border-bottom: none; }
+    .data-table tr:hover td { background: var(--surface2); }
+
+    /* ── BADGES ── */
+    .badge {
+      display: inline-block;
+      padding: 2px 9px;
+      border-radius: 20px;
+      font-size: 11px;
+      font-weight: 500;
+      white-space: nowrap;
+    }
+    .badge-green  { background: var(--green-light); color: #166534; }
+    .badge-amber  { background: var(--amber-light); color: var(--amber-dark); }
+    .badge-red    { background: var(--red-light);   color: #991b1b; }
+    .badge-blue   { background: var(--blue-light);  color: #1e40af; }
+    .badge-gray   { background: #f1f5f9; color: var(--muted); }
+
+    /* ── FILTERS ── */
+    .filters { display: flex; gap: 8px; margin-bottom: 16px; flex-wrap: wrap; }
+    .filter-btn {
+      padding: 6px 14px;
+      font-size: 12px;
+      font-family: inherit;
+      border: 1px solid var(--border);
+      border-radius: 20px;
+      background: var(--surface);
+      color: var(--muted);
+      cursor: pointer;
+      transition: all .15s;
+      display: flex;
+      align-items: center;
+      gap: 5px;
+    }
+    .filter-btn:hover { border-color: var(--blue); color: var(--blue); }
+    .filter-btn.active { background: var(--blue); border-color: var(--blue); color: #fff; }
+
+    /* ── KPI BARS ── */
+    .kpi-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 20px; }
+    .kpi-item {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-md);
+      padding: 14px 16px;
+    }
+    .kpi-header { display: flex; justify-content: space-between; align-items: baseline; margin-bottom: 8px; }
+    .kpi-name { font-size: 12px; color: var(--muted); }
+    .kpi-val { font-size: 17px; font-weight: 600; }
+    .kpi-bar-bg { height: 5px; background: var(--bg); border-radius: 3px; overflow: hidden; }
+    .kpi-bar { height: 100%; border-radius: 3px; }
+    .kpi-footer { display: flex; justify-content: space-between; margin-top: 5px; font-size: 10px; color: var(--muted); }
+
+    /* ── CALENDAR ── */
+    .cal-wrap { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius-md); overflow: hidden; overflow-x: auto; }
+    .cal-grid { min-width: 780px; }
+    .cal-row { display: grid; grid-template-columns: 160px 65px 80px repeat(12, 1fr); gap: 1px; background: var(--border); }
+    .cal-row:first-child { background: transparent; }
+    .cal-cell { padding: 7px 5px; font-size: 11px; text-align: center; background: var(--surface); }
+    .cal-cell.head { background: var(--surface2); font-weight: 500; font-size: 10px; color: var(--muted); text-transform: uppercase; letter-spacing: .4px; }
+    .cal-cell.eq   { text-align: left; padding-left: 12px; color: var(--text); font-weight: 500; font-size: 12px; }
+    .cal-cell.tag  { color: var(--muted); font-family: 'DM Mono', monospace; font-size: 10px; }
+    .cal-cell.freq { color: var(--muted); font-size: 10px; }
+    .cal-cell.done { background: var(--green-light); color: #166534; font-weight: 500; }
+    .cal-cell.plan { background: #eff6ff; color: #1e40af; }
+    .cal-cell.empty { background: var(--surface2); }
+    .cal-legend { display: flex; gap: 16px; font-size: 11px; color: var(--muted); margin-bottom: 12px; }
+    .cal-leg-dot { display: inline-block; width: 12px; height: 12px; border-radius: 2px; vertical-align: middle; margin-right: 4px; }
+
+    /* ── STOCK TOTALS ── */
+    .total-row {
+      text-align: right;
+      font-size: 13px;
+      font-weight: 500;
+      padding: 12px 0 0;
+      color: var(--text);
+    }
+    .total-row span { color: var(--blue); }
+
+    /* ── ALERT BANNER ── */
+    .alert-banner {
+      background: #fff7ed;
+      border: 1px solid #fed7aa;
+      border-radius: var(--radius-md);
+      padding: 12px 16px;
+      font-size: 13px;
+      color: #9a3412;
+      margin-bottom: 18px;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+    .alert-banner i { font-size: 17px; }
+
+    /* ── RESPONSIVE ── */
+    @media (max-width: 768px) {
+      .sidebar { display: none; }
+      .chart-row { grid-template-columns: 1fr; }
+      .kpi-grid  { grid-template-columns: 1fr; }
+      .metric-grid { grid-template-columns: repeat(2, 1fr); }
+    }
+  </style>
+</head>
+<body>
+
+<div class="layout">
+
+  <!-- SIDEBAR -->
+  <nav class="sidebar">
+    <div class="sidebar-logo">
+      <h1><i class="ti ti-tool" style="margin-right:6px;"></i>PCM</h1>
+      <p>Planejamento e Controle<br>de Manutenção</p>
+    </div>
+
+    <div class="nav">
+      <div class="nav-label">Visão Geral</div>
+      <button class="nav-item active" onclick="switchPanel('dashboard', this)">
+        <i class="ti ti-layout-dashboard"></i> Dashboard
+      </button>
+
+      <div class="nav-label">Gestão</div>
+      <button class="nav-item" onclick="switchPanel('os', this)">
+        <i class="ti ti-clipboard-list"></i> Ordens de Serviço
+      </button>
+      <button class="nav-item" onclick="switchPanel('preventivo', this)">
+        <i class="ti ti-calendar-event"></i> Plano Preventivo
+      </button>
+      <button class="nav-item" onclick="switchPanel('equipamentos', this)">
+        <i class="ti ti-settings-2"></i> Equipamentos
+      </button>
+
+      <div class="nav-label">Análise</div>
+      <button class="nav-item" onclick="switchPanel('kpi', this)">
+        <i class="ti ti-chart-bar"></i> Indicadores KPI
+      </button>
+      <button class="nav-item" onclick="switchPanel('custos', this)">
+        <i class="ti ti-coin"></i> Custos
+      </button>
+      <button class="nav-item" onclick="switchPanel('estoque', this)">
+        <i class="ti ti-package"></i> Estoque
+      </button>
+    </div>
+
+    <div class="sidebar-footer">
+      <i class="ti ti-calendar" style="margin-right:4px;"></i>Atualizado: 08/05/2026
+    </div>
+  </nav>
+
+  <!-- MAIN -->
+  <div class="main">
+
+    <!-- TOPBAR -->
+    <header class="topbar">
+      <div>
+        <div class="topbar-title" id="topbar-title">Dashboard Executivo</div>
+        <div class="topbar-sub">Unidade Industrial — Jan–Fev 2025</div>
+      </div>
+      <div class="topbar-badge">
+        <i class="ti ti-circle-filled" style="font-size:8px;color:#10b981;"></i>
+        Sistema ativo
+      </div>
+    </header>
+
+    <!-- ═══════════════════════════════════════ DASHBOARD ═══════════════════════════════════════ -->
+    <div id="panel-dashboard" class="panel active">
+
+      <div class="metric-grid">
+        <div class="metric-card info">
+          <div class="metric-icon" style="color:var(--blue);">📋</div>
+          <div class="metric-label">Total OS</div>
+          <div class="metric-value">60</div>
+          <div class="metric-sub">Jan–Fev 2025</div>
+        </div>
+        <div class="metric-card ok">
+          <div class="metric-icon" style="color:var(--green);">✅</div>
+          <div class="metric-label">Concluídas</div>
+          <div class="metric-value">55</div>
+          <div class="metric-sub">91,7% do total</div>
+        </div>
+        <div class="metric-card warn">
+          <div class="metric-icon" style="color:var(--accent);">🔄</div>
+          <div class="metric-label">Em Andamento</div>
+          <div class="metric-value">3</div>
+          <div class="metric-sub">5% do total</div>
+        </div>
+        <div class="metric-card danger">
+          <div class="metric-icon" style="color:var(--red);">🚨</div>
+          <div class="metric-label">Emergências</div>
+          <div class="metric-value">1</div>
+          <div class="metric-sub">ME-08 — Parado</div>
+        </div>
+        <div class="metric-card">
+          <div class="metric-icon" style="color:var(--muted);">⚙️</div>
+          <div class="metric-label">Equipamentos</div>
+          <div class="metric-value" style="color:var(--text);">15</div>
+          <div class="metric-sub">Ativos cadastrados</div>
+        </div>
+        <div class="metric-card warn">
+          <div class="metric-icon" style="color:var(--accent);">📋</div>
+          <div class="metric-label">Backlog OS</div>
+          <div class="metric-value">18</div>
+          <div class="metric-sub">Meta: ≤ 15</div>
+        </div>
+        <div class="metric-card ok">
+          <div class="metric-icon" style="color:var(--green);">⏱️</div>
+          <div class="metric-label">MTBF</div>
+          <div class="metric-value">312h</div>
+          <div class="metric-sub">Meta: ≥ 300h ✓</div>
+        </div>
+        <div class="metric-card ok">
+          <div class="metric-icon" style="color:var(--green);">🔧</div>
+          <div class="metric-label">MTTR</div>
+          <div class="metric-value">3,8h</div>
+          <div class="metric-sub">Meta: ≤ 4h ✓</div>
+        </div>
+      </div>
+
+      <div class="chart-row">
+        <div class="chart-card">
+          <div class="chart-title"><i class="ti ti-chart-pie"></i> Tipo de OS</div>
+          <div class="chart-legend">
+            <span><span class="legend-dot" style="background:#1a5fa8;"></span>Corretiva 43%</span>
+            <span><span class="legend-dot" style="background:#10b981;"></span>Preventiva 37%</span>
+            <span><span class="legend-dot" style="background:#f59e0b;"></span>Preditiva 12%</span>
+            <span><span class="legend-dot" style="background:#8b5cf6;"></span>Melhoria 8%</span>
+          </div>
+          <div style="position:relative;height:200px;">
+            <canvas id="chartTipo" role="img" aria-label="Distribuição de OS por tipo: Corretiva 26, Preventiva 22, Preditiva 7, Melhoria 5">Corretiva 26, Preventiva 22, Preditiva 7, Melhoria 5.</canvas>
+          </div>
+        </div>
+        <div class="chart-card">
+          <div class="chart-title"><i class="ti ti-building-factory"></i> OS por Área</div>
+          <div class="chart-legend">
+            <span><span class="legend-dot" style="background:#1a5fa8;"></span>Utilidades</span>
+            <span><span class="legend-dot" style="background:#10b981;"></span>Produção A</span>
+            <span><span class="legend-dot" style="background:#f59e0b;"></span>Produção B</span>
+          </div>
+          <div style="position:relative;height:200px;">
+            <canvas id="chartArea" role="img" aria-label="OS por área: Utilidades 18, Produção A 14, Produção B 12, Prensa 8, Elétrica 5, Qualidade 2, Fundição 1">Utilidades 18, Produção A 14, Produção B 12, Prensa 8, Elétrica 5, Qualidade 2, Fundição 1.</canvas>
+          </div>
+        </div>
+      </div>
+
+      <div class="chart-card">
+        <div class="chart-title"><i class="ti ti-trending-up"></i> Evolução mensal — OS abertas vs concluídas</div>
+        <div class="chart-legend">
+          <span><span class="legend-dot" style="background:#1a5fa8;"></span>OS Abertas</span>
+          <span><span class="legend-dot" style="background:#10b981;border:1px dashed #10b981;"></span>OS Concluídas</span>
+        </div>
+        <div style="position:relative;height:190px;">
+          <canvas id="chartEvolucao" role="img" aria-label="Evolução mensal: Jan 28 abertas / 25 concluídas; Fev 32 abertas / 30 concluídas">Jan: 28 abertas, 25 concluídas. Fev: 32 abertas, 30 concluídas.</canvas>
+        </div>
+      </div>
+    </div>
+
+    <!-- ═══════════════════════════════════════ ORDENS DE SERVIÇO ═══════════════════════════════════════ -->
+    <div id="panel-os" class="panel">
+      <div class="section-title"><i class="ti ti-clipboard-list"></i> Ordens de Serviço — 2025</div>
+
+      <div class="filters">
+        <button class="filter-btn active" onclick="filterOS(this,'all')"><i class="ti ti-list"></i> Todas (12)</button>
+        <button class="filter-btn" onclick="filterOS(this,'concluida')"><i class="ti ti-check"></i> Concluídas (5)</button>
+        <button class="filter-btn" onclick="filterOS(this,'andamento')"><i class="ti ti-refresh"></i> Em Andamento (3)</button>
+        <button class="filter-btn" onclick="filterOS(this,'aguardando')"><i class="ti ti-clock"></i> Aguardando (3)</button>
+        <button class="filter-btn" onclick="filterOS(this,'emergencia')"><i class="ti ti-alert-triangle"></i> Emergência (1)</button>
+      </div>
+
+      <div class="table-wrap">
+        <table class="data-table" id="osTable">
+          <thead>
+            <tr>
+              <th>Nº OS</th>
+              <th>Tipo</th>
+              <th>Prioridade</th>
+              <th>Equipamento</th>
+              <th>TAG</th>
+              <th>Área</th>
+              <th>Executante</th>
+              <th>Especialidade</th>
+              <th>HH Prev.</th>
+              <th>HH Real</th>
+              <th>Status</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr data-status="concluida"><td><code>OS-2025-001</code></td><td>Corretiva</td><td><span class="badge badge-red">Alta</span></td><td>Compressor AR-01</td><td><code>COMP-01</code></td><td>Utilidades</td><td>Carlos Melo</td><td>Mecânica</td><td>4</td><td>4,5</td><td><span class="badge badge-green">Concluída</span></td></tr>
+            <tr data-status="concluida"><td><code>OS-2025-002</code></td><td>Preventiva</td><td><span class="badge badge-amber">Média</span></td><td>Motor Elétrico ME-05</td><td><code>ME-05</code></td><td>Produção A</td><td>Pedro Lima</td><td>Elétrica</td><td>3</td><td>3,0</td><td><span class="badge badge-green">Concluída</span></td></tr>
+            <tr data-status="concluida"><td><code>OS-2025-003</code></td><td>Preditiva</td><td><span class="badge badge-gray">Baixa</span></td><td>Bomba Centrífuga BC-03</td><td><code>BC-03</code></td><td>Utilidades</td><td>Marcos Reis</td><td>Mecânica</td><td>6</td><td>7,0</td><td><span class="badge badge-green">Concluída</span></td></tr>
+            <tr data-status="concluida"><td><code>OS-2025-004</code></td><td>Corretiva</td><td><span class="badge badge-red">Alta</span></td><td>Painel Elétrico PE-02</td><td><code>PE-02</code></td><td>Elétrica</td><td>Ana Lima</td><td>Elétrica</td><td>5</td><td>6,0</td><td><span class="badge badge-green">Concluída</span></td></tr>
+            <tr data-status="concluida"><td><code>OS-2025-005</code></td><td>Preventiva</td><td><span class="badge badge-amber">Média</span></td><td>Esteira ET-01</td><td><code>ET-01</code></td><td>Produção B</td><td>João Ferreira</td><td>Mecânica</td><td>4</td><td>4,0</td><td><span class="badge badge-green">Concluída</span></td></tr>
+            <tr data-status="andamento"><td><code>OS-2025-006</code></td><td>Melhoria</td><td><span class="badge badge-blue">Planej.</span></td><td>Ventilador Industrial VI-02</td><td><code>VI-02</code></td><td>Produção A</td><td>Pedro Costa</td><td>Mecânica</td><td>12</td><td>8,0</td><td><span class="badge badge-blue">Em Andamento</span></td></tr>
+            <tr data-status="andamento"><td><code>OS-2025-007</code></td><td>Corretiva</td><td><span class="badge badge-red">Alta</span></td><td>Bomba Hidráulica BH-04</td><td><code>BH-04</code></td><td>Prensa</td><td>Carlos Lima</td><td>Hidráulica</td><td>3</td><td>2,5</td><td><span class="badge badge-blue">Em Andamento</span></td></tr>
+            <tr data-status="aguardando"><td><code>OS-2025-008</code></td><td>Preventiva</td><td><span class="badge badge-amber">Média</span></td><td>Compressor AR-02</td><td><code>COMP-02</code></td><td>Utilidades</td><td>Marcos Silva</td><td>Mecânica</td><td>5</td><td>0,0</td><td><span class="badge badge-amber">Aguardando</span></td></tr>
+            <tr data-status="aguardando"><td><code>OS-2025-009</code></td><td>Preditiva</td><td><span class="badge badge-gray">Baixa</span></td><td>Roleta Magnética RM-01</td><td><code>RM-01</code></td><td>Qualidade</td><td>Pedro Alves</td><td>Instrumentação</td><td>8</td><td>0,0</td><td><span class="badge badge-amber">Aguardando</span></td></tr>
+            <tr data-status="emergencia"><td><code>OS-2025-010</code></td><td>Corretiva</td><td><span class="badge badge-red">Alta</span></td><td>Motor Elétrico ME-08</td><td><code>ME-08</code></td><td>Produção B</td><td>João Melo</td><td>Elétrica</td><td>8</td><td>0,0</td><td><span class="badge badge-red">Emergência</span></td></tr>
+            <tr data-status="aguardando"><td><code>OS-2025-011</code></td><td>Preventiva</td><td><span class="badge badge-amber">Média</span></td><td>Bomba Centrífuga BC-07</td><td><code>BC-07</code></td><td>Utilidades</td><td>Roberto Costa</td><td>Mecânica</td><td>6</td><td>0,0</td><td><span class="badge badge-amber">Aguardando</span></td></tr>
+            <tr data-status="andamento"><td><code>OS-2025-012</code></td><td>Melhoria</td><td><span class="badge badge-blue">Planej.</span></td><td>Sistema de Exaustão SE-01</td><td><code>SE-01</code></td><td>Fundição</td><td>Equipe PCM</td><td>Civil/Mecânica</td><td>40</td><td>0,0</td><td><span class="badge badge-gray">Planejada</span></td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- ═══════════════════════════════════════ INDICADORES KPI ═══════════════════════════════════════ -->
+    <div id="panel-kpi" class="panel">
+      <div class="section-title"><i class="ti ti-chart-bar"></i> Indicadores de Performance — KPIs 2025</div>
+
+      <div class="kpi-grid">
+        <div class="kpi-item">
+          <div class="kpi-header">
+            <span class="kpi-name">% OS Corretivas</span>
+            <span class="kpi-val" style="color:var(--red);">42%</span>
+          </div>
+          <div class="kpi-bar-bg"><div class="kpi-bar" style="width:42%;background:var(--red);"></div></div>
+          <div class="kpi-footer"><span>Meta: ≤ 30%</span><span style="color:var(--red);">⚠ Acima do limite</span></div>
+        </div>
+        <div class="kpi-item">
+          <div class="kpi-header">
+            <span class="kpi-name">% OS Preventivas</span>
+            <span class="kpi-val" style="color:var(--accent);">38%</span>
+          </div>
+          <div class="kpi-bar-bg"><div class="kpi-bar" style="width:38%;background:var(--accent);"></div></div>
+          <div class="kpi-footer"><span>Meta: ≥ 40%</span><span style="color:var(--accent);">↓ Abaixo da meta</span></div>
+        </div>
+        <div class="kpi-item">
+          <div class="kpi-header">
+            <span class="kpi-name">% OS Preditivas</span>
+            <span class="kpi-val" style="color:var(--accent);">15%</span>
+          </div>
+          <div class="kpi-bar-bg"><div class="kpi-bar" style="width:15%;background:var(--accent);"></div></div>
+          <div class="kpi-footer"><span>Meta: ≥ 20%</span><span style="color:var(--accent);">↓ Abaixo da meta</span></div>
+        </div>
+        <div class="kpi-item">
+          <div class="kpi-header">
+            <span class="kpi-name">Disponibilidade geral</span>
+            <span class="kpi-val" style="color:var(--accent);">93,5%</span>
+          </div>
+          <div class="kpi-bar-bg"><div class="kpi-bar" style="width:93.5%;background:var(--accent);"></div></div>
+          <div class="kpi-footer"><span>Meta: ≥ 95%</span><span style="color:var(--accent);">↓ Abaixo da meta</span></div>
+        </div>
+        <div class="kpi-item">
+          <div class="kpi-header">
+            <span class="kpi-name">Eficiência PCM (OS no prazo)</span>
+            <span class="kpi-val" style="color:var(--accent);">87%</span>
+          </div>
+          <div class="kpi-bar-bg"><div class="kpi-bar" style="width:87%;background:var(--accent);"></div></div>
+          <div class="kpi-footer"><span>Meta: ≥ 90%</span><span style="color:var(--accent);">↓ Abaixo da meta</span></div>
+        </div>
+        <div class="kpi-item">
+          <div class="kpi-header">
+            <span class="kpi-name">Aderência ao PM</span>
+            <span class="kpi-val" style="color:var(--red);">78%</span>
+          </div>
+          <div class="kpi-bar-bg"><div class="kpi-bar" style="width:78%;background:var(--red);"></div></div>
+          <div class="kpi-footer"><span>Meta: ≥ 90%</span><span style="color:var(--red);">⚠ Muito abaixo</span></div>
+        </div>
+        <div class="kpi-item">
+          <div class="kpi-header">
+            <span class="kpi-name">MTBF — Tempo médio entre falhas</span>
+            <span class="kpi-val" style="color:var(--green);">312h</span>
+          </div>
+          <div class="kpi-bar-bg"><div class="kpi-bar" style="width:78%;background:var(--green);"></div></div>
+          <div class="kpi-footer"><span>Meta: ≥ 300h</span><span style="color:var(--green);">✓ Dentro da meta</span></div>
+        </div>
+        <div class="kpi-item">
+          <div class="kpi-header">
+            <span class="kpi-name">MTTR — Tempo médio para reparo</span>
+            <span class="kpi-val" style="color:var(--green);">3,8h</span>
+          </div>
+          <div class="kpi-bar-bg"><div class="kpi-bar" style="width:90%;background:var(--green);"></div></div>
+          <div class="kpi-footer"><span>Meta: ≤ 4h</span><span style="color:var(--green);">✓ Dentro da meta</span></div>
+        </div>
+        <div class="kpi-item">
+          <div class="kpi-header">
+            <span class="kpi-name">Custo de manutenção / faturamento</span>
+            <span class="kpi-val" style="color:var(--accent);">4,2%</span>
+          </div>
+          <div class="kpi-bar-bg"><div class="kpi-bar" style="width:84%;background:var(--accent);"></div></div>
+          <div class="kpi-footer"><span>Meta: ≤ 4%</span><span style="color:var(--accent);">↑ Ligeiramente acima</span></div>
+        </div>
+        <div class="kpi-item">
+          <div class="kpi-header">
+            <span class="kpi-name">Backlog de OS em aberto</span>
+            <span class="kpi-val" style="color:var(--red);">18</span>
+          </div>
+          <div class="kpi-bar-bg"><div class="kpi-bar" style="width:60%;background:var(--red);"></div></div>
+          <div class="kpi-footer"><span>Meta: ≤ 15</span><span style="color:var(--red);">⚠ Acima do limite</span></div>
+        </div>
+      </div>
+
+      <div class="chart-card">
+        <div class="chart-title"><i class="ti ti-chart-bar"></i> Evolução de HH Previsto vs Real — Jan/Fev 2025</div>
+        <div class="chart-legend">
+          <span><span class="legend-dot" style="background:#1a5fa8;"></span>HH Previsto</span>
+          <span><span class="legend-dot" style="background:#f59e0b;"></span>HH Real</span>
+        </div>
+        <div style="position:relative;height:200px;">
+          <canvas id="chartHH" role="img" aria-label="HH previsto vs real em Jan e Fev 2025">Jan: 180 prev / 190 real. Fev: 200 prev / 205 real.</canvas>
+        </div>
+      </div>
+    </div>
+
+    <!-- ═══════════════════════════════════════ EQUIPAMENTOS ═══════════════════════════════════════ -->
+    <div id="panel-equipamentos" class="panel">
+      <div class="section-title"><i class="ti ti-settings-2"></i> Cadastro de Equipamentos — 15 ativos</div>
+
+      <div class="metric-grid" style="grid-template-columns:repeat(4,1fr);margin-bottom:18px;">
+        <div class="metric-card ok"><div class="metric-label">Operando</div><div class="metric-value">11</div></div>
+        <div class="metric-card warn"><div class="metric-label">Em Manutenção</div><div class="metric-value">2</div></div>
+        <div class="metric-card danger"><div class="metric-label">Parado</div><div class="metric-value">1</div></div>
+        <div class="metric-card info"><div class="metric-label">Stand-by</div><div class="metric-value">1</div></div>
+      </div>
+
+      <div class="table-wrap">
+        <table class="data-table">
+          <thead>
+            <tr>
+              <th>TAG</th>
+              <th>Descrição</th>
+              <th>Área</th>
+              <th>Fabricante</th>
+              <th>Modelo</th>
+              <th>Ano</th>
+              <th>Criticidade</th>
+              <th>Custo Rep. R$</th>
+              <th>Status</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr><td><code>COMP-01</code></td><td>Compressor de Ar Parafuso</td><td>Utilidades</td><td>Atlas Copco</td><td>GA-37</td><td>2019</td><td><span class="badge badge-red">Alta</span></td><td>85.000</td><td><span class="badge badge-green">Operando</span></td></tr>
+            <tr><td><code>COMP-02</code></td><td>Compressor de Ar Parafuso</td><td>Utilidades</td><td>Atlas Copco</td><td>GA-30</td><td>2020</td><td><span class="badge badge-red">Alta</span></td><td>72.000</td><td><span class="badge badge-green">Operando</span></td></tr>
+            <tr><td><code>ME-05</code></td><td>Motor Elétrico Trifásico</td><td>Produção A</td><td>WEG</td><td>W22 IR3</td><td>2018</td><td><span class="badge badge-amber">Média</span></td><td>8.500</td><td><span class="badge badge-green">Operando</span></td></tr>
+            <tr><td><code>ME-08</code></td><td>Motor Elétrico Trifásico</td><td>Produção B</td><td>WEG</td><td>W22 IR3</td><td>2021</td><td><span class="badge badge-red">Alta</span></td><td>6.800</td><td><span class="badge badge-red">Parado</span></td></tr>
+            <tr><td><code>BC-03</code></td><td>Bomba Centrífuga</td><td>Utilidades</td><td>KSB</td><td>Etanorm 065</td><td>2017</td><td><span class="badge badge-red">Alta</span></td><td>18.000</td><td><span class="badge badge-green">Operando</span></td></tr>
+            <tr><td><code>BC-07</code></td><td>Bomba Centrífuga</td><td>Utilidades</td><td>KSB</td><td>Etanorm 050</td><td>2019</td><td><span class="badge badge-amber">Média</span></td><td>15.000</td><td><span class="badge badge-green">Operando</span></td></tr>
+            <tr><td><code>BH-04</code></td><td>Bomba Hidráulica</td><td>Prensa</td><td>Bosch Rexroth</td><td>A10VO</td><td>2020</td><td><span class="badge badge-red">Alta</span></td><td>35.000</td><td><span class="badge badge-amber">Em Manutenção</span></td></tr>
+            <tr><td><code>ET-01</code></td><td>Esteira Transportadora</td><td>Produção B</td><td>Metso</td><td>MC-500</td><td>2016</td><td><span class="badge badge-amber">Média</span></td><td>45.000</td><td><span class="badge badge-green">Operando</span></td></tr>
+            <tr><td><code>VI-02</code></td><td>Ventilador Industrial</td><td>Produção A</td><td>New York Blower</td><td>27BI</td><td>2018</td><td><span class="badge badge-amber">Média</span></td><td>22.000</td><td><span class="badge badge-green">Operando</span></td></tr>
+            <tr><td><code>PE-02</code></td><td>Painel Elétrico</td><td>Elétrica</td><td>Schneider</td><td>Prisma+</td><td>2015</td><td><span class="badge badge-red">Alta</span></td><td>12.000</td><td><span class="badge badge-green">Operando</span></td></tr>
+            <tr><td><code>RM-01</code></td><td>Roleta Magnética</td><td>Qualidade</td><td>Eriez</td><td>RE-200</td><td>2022</td><td><span class="badge badge-amber">Média</span></td><td>28.000</td><td><span class="badge badge-green">Operando</span></td></tr>
+            <tr><td><code>SE-01</code></td><td>Sistema de Exaustão</td><td>Fundição</td><td>IBRAP</td><td>EX-5000</td><td>2014</td><td><span class="badge badge-red">Alta</span></td><td>95.000</td><td><span class="badge badge-amber">Em Manutenção</span></td></tr>
+            <tr><td><code>GE-01</code></td><td>Gerador a Diesel</td><td>Utilidades</td><td>Stemac</td><td>SDG-250</td><td>2020</td><td><span class="badge badge-red">Alta</span></td><td>180.000</td><td><span class="badge badge-blue">Stand-by</span></td></tr>
+            <tr><td><code>PH-01</code></td><td>Prensa Hidráulica</td><td>Prensa</td><td>Schuler</td><td>HP-500</td><td>2018</td><td><span class="badge badge-red">Alta</span></td><td>450.000</td><td><span class="badge badge-green">Operando</span></td></tr>
+            <tr><td><code>CH-01</code></td><td>Chiller Industrial</td><td>AVAC</td><td>Trane</td><td>CGAM-100</td><td>2019</td><td><span class="badge badge-red">Alta</span></td><td>280.000</td><td><span class="badge badge-green">Operando</span></td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- ═══════════════════════════════════════ PLANO PREVENTIVO ═══════════════════════════════════════ -->
+    <div id="panel-preventivo" class="panel">
+      <div class="section-title"><i class="ti ti-calendar-event"></i> Plano Mestre de Manutenção Preventiva — 2026</div>
+
+      <div class="cal-legend">
+        <span><span class="cal-leg-dot" style="background:var(--green-light);"></span>Concluída</span>
+        <span><span class="cal-leg-dot" style="background:#eff6ff;"></span>Programada</span>
+        <span><span class="cal-leg-dot" style="background:var(--surface2);"></span>Não aplicável</span>
+      </div>
+
+      <div class="cal-wrap">
+        <div class="cal-grid">
+          <div class="cal-row">
+            <div class="cal-cell head" style="text-align:left;padding-left:12px;">Equipamento</div>
+            <div class="cal-cell head">TAG</div>
+            <div class="cal-cell head">Freq.</div>
+            <div class="cal-cell head">Jan</div><div class="cal-cell head">Fev</div><div class="cal-cell head">Mar</div><div class="cal-cell head">Abr</div><div class="cal-cell head">Mai</div><div class="cal-cell head">Jun</div><div class="cal-cell head">Jul</div><div class="cal-cell head">Ago</div><div class="cal-cell head">Set</div><div class="cal-cell head">Out</div><div class="cal-cell head">Nov</div><div class="cal-cell head">Dez</div>
+          </div>
+          <div class="cal-row"><div class="cal-cell eq">Compressor AR-01</div><div class="cal-cell tag">COMP-01</div><div class="cal-cell freq">Mensal</div><div class="cal-cell done">✓</div><div class="cal-cell done">✓</div><div class="cal-cell plan">●</div><div class="cal-cell plan">●</div><div class="cal-cell plan">●</div><div class="cal-cell plan">●</div><div class="cal-cell plan">●</div><div class="cal-cell plan">●</div><div class="cal-cell plan">●</div><div class="cal-cell plan">●</div><div class="cal-cell plan">●</div><div class="cal-cell plan">●</div></div>
+          <div class="cal-row"><div class="cal-cell eq">Compressor AR-02</div><div class="cal-cell tag">COMP-02</div><div class="cal-cell freq">Trimestral</div><div class="cal-cell done">✓</div><div class="cal-cell empty"></div><div class="cal-cell empty"></div><div class="cal-cell plan">●</div><div class="cal-cell empty"></div><div class="cal-cell empty"></div><div class="cal-cell plan">●</div><div class="cal-cell empty"></div><div class="cal-cell empty"></div><div class="cal-cell plan">●</div><div class="cal-cell empty"></div><div class="cal-cell empty"></div></div>
+          <div class="cal-row"><div class="cal-cell eq">Motor Elétrico ME-05</div><div class="cal-cell tag">ME-05</div><div class="cal-cell freq">Semestral</div><div class="cal-cell done">✓</div><div class="cal-cell empty"></div><div class="cal-cell empty"></div><div class="cal-cell empty"></div><div class="cal-cell empty"></div><div class="cal-cell empty"></div><div class="cal-cell plan">●</div><div class="cal-cell empty"></div><div class="cal-cell empty"></div><div class="cal-cell empty"></div><div class="cal-cell empty"></div><div class="cal-cell empty"></div></div>
+          <div class="cal-row"><div class="cal-cell eq">Motor Elétrico ME-08</div><div class="cal-cell tag">ME-08</div><div class="cal-cell freq">Semestral</div><div class="cal-cell empty"></div><div class="cal-cell done">✓</div><div class="cal-cell empty"></div><div class="cal-cell empty"></div><div class="cal-cell empty"></div><div class="cal-cell empty"></div><div class="cal-cell empty"></div><div class="cal-cell plan">●</div><div class="cal-cell empty"></div><div class="cal-cell empty"></div><div class="cal-cell empty"></div><div class="cal-cell empty"></div></div>
+          <div class="cal-row"><div class="cal-cell eq">Bomba Centrífuga BC-03</div><div class="cal-cell tag">BC-03</div><div class="cal-cell freq">Mensal</div><div class="cal-cell done">✓</div><div class="cal-cell done">✓</div><div class="cal-cell plan">●</div><div class="cal-cell plan">●</div><div class="cal-cell plan">●</div><div class="cal-cell plan">●</div><div class="cal-cell plan">●</div><div class="cal-cell plan">●</div><div class="cal-cell plan">●</div><div class="cal-cell plan">●</div><div class="cal-cell plan">●</div><div class="cal-cell plan">●</div></div>
+          <div class="cal-row"><div class="cal-cell eq">Bomba Centrífuga BC-07</div><div class="cal-cell tag">BC-07</div><div class="cal-cell freq">Semestral</div><div class="cal-cell done">✓</div><div class="cal-cell empty"></div><div class="cal-cell empty"></div><div class="cal-cell empty"></div><div class="cal-cell empty"></div><div class="cal-cell empty"></div><div class="cal-cell plan">●</div><div class="cal-cell empty"></div><div class="cal-cell empty"></div><div class="cal-cell empty"></div><div class="cal-cell empty"></div><div class="cal-cell empty"></div></div>
+          <div class="cal-row"><div class="cal-cell eq">Bomba Hidráulica BH-04</div><div class="cal-cell tag">BH-04</div><div class="cal-cell freq">Mensal</div><div class="cal-cell done">✓</div><div class="cal-cell plan">●</div><div class="cal-cell plan">●</div><div class="cal-cell plan">●</div><div class="cal-cell plan">●</div><div class="cal-cell plan">●</div><div class="cal-cell plan">●</div><div class="cal-cell plan">●</div><div class="cal-cell plan">●</div><div class="cal-cell plan">●</div><div class="cal-cell plan">●</div><div class="cal-cell plan">●</div></div>
+          <div class="cal-row"><div class="cal-cell eq">Esteira ET-01</div><div class="cal-cell tag">ET-01</div><div class="cal-cell freq">Mensal</div><div class="cal-cell done">✓</div><div class="cal-cell done">✓</div><div class="cal-cell plan">●</div><div class="cal-cell plan">●</div><div class="cal-cell plan">●</div><div class="cal-cell plan">●</div><div class="cal-cell plan">●</div><div class="cal-cell plan">●</div><div class="cal-cell plan">●</div><div class="cal-cell plan">●</div><div class="cal-cell plan">●</div><div class="cal-cell plan">●</div></div>
+          <div class="cal-row"><div class="cal-cell eq">Ventilador VI-02</div><div class="cal-cell tag">VI-02</div><div class="cal-cell freq">Trimestral</div><div class="cal-cell done">✓</div><div class="cal-cell empty"></div><div class="cal-cell empty"></div><div class="cal-cell plan">●</div><div class="cal-cell empty"></div><div class="cal-cell empty"></div><div class="cal-cell plan">●</div><div class="cal-cell empty"></div><div class="cal-cell empty"></div><div class="cal-cell plan">●</div><div class="cal-cell empty"></div><div class="cal-cell empty"></div></div>
+          <div class="cal-row"><div class="cal-cell eq">Painel Elétrico PE-02</div><div class="cal-cell tag">PE-02</div><div class="cal-cell freq">Semestral</div><div class="cal-cell done">✓</div><div class="cal-cell empty"></div><div class="cal-cell empty"></div><div class="cal-cell empty"></div><div class="cal-cell empty"></div><div class="cal-cell empty"></div><div class="cal-cell plan">●</div><div class="cal-cell empty"></div><div class="cal-cell empty"></div><div class="cal-cell empty"></div><div class="cal-cell empty"></div><div class="cal-cell empty"></div></div>
+          <div class="cal-row"><div class="cal-cell eq">Gerador GE-01</div><div class="cal-cell tag">GE-01</div><div class="cal-cell freq">Mensal</div><div class="cal-cell done">✓</div><div class="cal-cell done">✓</div><div class="cal-cell plan">●</div><div class="cal-cell plan">●</div><div class="cal-cell plan">●</div><div class="cal-cell plan">●</div><div class="cal-cell plan">●</div><div class="cal-cell plan">●</div><div class="cal-cell plan">●</div><div class="cal-cell plan">●</div><div class="cal-cell plan">●</div><div class="cal-cell plan">●</div></div>
+          <div class="cal-row"><div class="cal-cell eq">Prensa Hidráulica PH-01</div><div class="cal-cell tag">PH-01</div><div class="cal-cell freq">Trimestral</div><div class="cal-cell done">✓</div><div class="cal-cell empty"></div><div class="cal-cell empty"></div><div class="cal-cell plan">●</div><div class="cal-cell empty"></div><div class="cal-cell empty"></div><div class="cal-cell plan">●</div><div class="cal-cell empty"></div><div class="cal-cell empty"></div><div class="cal-cell plan">●</div><div class="cal-cell empty"></div><div class="cal-cell empty"></div></div>
+          <div class="cal-row"><div class="cal-cell eq">Chiller Industrial CH-01</div><div class="cal-cell tag">CH-01</div><div class="cal-cell freq">Mensal</div><div class="cal-cell done">✓</div><div class="cal-cell done">✓</div><div class="cal-cell plan">●</div><div class="cal-cell plan">●</div><div class="cal-cell plan">●</div><div class="cal-cell plan">●</div><div class="cal-cell plan">●</div><div class="cal-cell plan">●</div><div class="cal-cell plan">●</div><div class="cal-cell plan">●</div><div class="cal-cell plan">●</div><div class="cal-cell plan">●</div></div>
+          <div class="cal-row"><div class="cal-cell eq">Roleta Magnética RM-01</div><div class="cal-cell tag">RM-01</div><div class="cal-cell freq">Anual</div><div class="cal-cell empty"></div><div class="cal-cell empty"></div><div class="cal-cell empty"></div><div class="cal-cell empty"></div><div class="cal-cell empty"></div><div class="cal-cell empty"></div><div class="cal-cell empty"></div><div class="cal-cell empty"></div><div class="cal-cell empty"></div><div class="cal-cell empty"></div><div class="cal-cell empty"></div><div class="cal-cell plan">●</div></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ═══════════════════════════════════════ CUSTOS ═══════════════════════════════════════ -->
+    <div id="panel-custos" class="panel">
+      <div class="section-title"><i class="ti ti-coin"></i> Controle de Custos — 2025</div>
+
+      <div class="metric-grid" style="grid-template-columns:repeat(4,1fr);margin-bottom:20px;">
+        <div class="metric-card info"><div class="metric-label">Mão de Obra</div><div class="metric-value">R$ 3.900</div><div class="metric-sub">25,7% do total</div></div>
+        <div class="metric-card"><div class="metric-label">Material</div><div class="metric-value" style="color:var(--text);">R$ 8.270</div><div class="metric-sub">54,5% do total</div></div>
+        <div class="metric-card warn"><div class="metric-label">Terceiros</div><div class="metric-value">R$ 2.500</div><div class="metric-sub">16,5% do total</div></div>
+        <div class="metric-card ok"><div class="metric-label">Custo Total</div><div class="metric-value">R$ 15.170</div><div class="metric-sub">Orçamento: R$ 19.800</div></div>
+      </div>
+
+      <div class="table-wrap" style="margin-bottom:18px;">
+        <table class="data-table">
+          <thead>
+            <tr><th>OS</th><th>Equipamento</th><th>Área</th><th>Tipo</th><th>M.O. R$</th><th>Material R$</th><th>Terceiros R$</th><th>Outros R$</th><th>Total R$</th><th>Orç. R$</th><th>Variação R$</th><th>Situação</th></tr>
+          </thead>
+          <tbody>
+            <tr><td><code>OS-2025-001</code></td><td>Compressor AR-01</td><td>Utilidades</td><td>Corretiva</td><td>480</td><td>1.250</td><td>—</td><td>—</td><td><strong>1.730</strong></td><td>2.000</td><td style="color:var(--green);">+270</td><td><span class="badge badge-green">Dentro</span></td></tr>
+            <tr><td><code>OS-2025-002</code></td><td>Motor ME-05</td><td>Produção A</td><td>Preventiva</td><td>360</td><td>180</td><td>—</td><td>—</td><td><strong>540</strong></td><td>800</td><td style="color:var(--green);">+260</td><td><span class="badge badge-green">Dentro</span></td></tr>
+            <tr><td><code>OS-2025-003</code></td><td>Bomba BC-03</td><td>Utilidades</td><td>Preditiva</td><td>720</td><td>850</td><td>—</td><td>—</td><td><strong>1.570</strong></td><td>2.500</td><td style="color:var(--green);">+930</td><td><span class="badge badge-green">Dentro</span></td></tr>
+            <tr><td><code>OS-2025-004</code></td><td>Painel PE-02</td><td>Elétrica</td><td>Corretiva</td><td>600</td><td>320</td><td>2.500</td><td>—</td><td><strong>3.420</strong></td><td>4.000</td><td style="color:var(--green);">+580</td><td><span class="badge badge-green">Dentro</span></td></tr>
+            <tr><td><code>OS-2025-005</code></td><td>Esteira ET-01</td><td>Produção B</td><td>Preventiva</td><td>480</td><td>220</td><td>—</td><td>—</td><td><strong>700</strong></td><td>1.000</td><td style="color:var(--green);">+300</td><td><span class="badge badge-green">Dentro</span></td></tr>
+            <tr><td><code>OS-2025-006</code></td><td>Ventilador VI-02</td><td>Produção A</td><td>Melhoria</td><td>960</td><td>4.800</td><td>—</td><td>500</td><td><strong>6.260</strong></td><td>8.000</td><td style="color:var(--green);">+1.740</td><td><span class="badge badge-green">Dentro</span></td></tr>
+            <tr><td><code>OS-2025-007</code></td><td>Bomba BH-04</td><td>Prensa</td><td>Corretiva</td><td>300</td><td>650</td><td>—</td><td>—</td><td><strong>950</strong></td><td>1.500</td><td style="color:var(--green);">+550</td><td><span class="badge badge-green">Dentro</span></td></tr>
+            <tr style="background:var(--surface2);font-weight:600;"><td colspan="4">TOTAIS</td><td>3.900</td><td>8.270</td><td>2.500</td><td>500</td><td><strong style="color:var(--blue);">15.170</strong></td><td>19.800</td><td style="color:var(--green);">+4.630</td><td><span class="badge badge-green">Dentro</span></td></tr>
+          </tbody>
+        </table>
+      </div>
+
+      <div class="chart-card">
+        <div class="chart-title"><i class="ti ti-chart-bar"></i> Composição de custos por OS (R$)</div>
+        <div class="chart-legend">
+          <span><span class="legend-dot" style="background:#1a5fa8;"></span>Mão de Obra</span>
+          <span><span class="legend-dot" style="background:#f59e0b;"></span>Material</span>
+          <span><span class="legend-dot" style="background:#ef4444;"></span>Terceiros</span>
+          <span><span class="legend-dot" style="background:#8b5cf6;"></span>Outros</span>
+        </div>
+        <div style="position:relative;height:220px;">
+          <canvas id="chartCustos" role="img" aria-label="Composição de custos por OS em barras empilhadas">Custos de mão de obra, material e terceiros de OS-001 a OS-007.</canvas>
+        </div>
+      </div>
+    </div>
+
+    <!-- ═══════════════════════════════════════ ESTOQUE ═══════════════════════════════════════ -->
+    <div id="panel-estoque" class="panel">
+      <div class="section-title"><i class="ti ti-package"></i> Controle de Estoque — Almoxarifado de Manutenção</div>
+
+      <div class="alert-banner">
+        <i class="ti ti-alert-triangle"></i>
+        <strong>4 itens abaixo do estoque mínimo</strong> — MAT-002, MAT-006, MAT-009, MAT-015 necessitam reposição urgente.
+      </div>
+
+      <div class="metric-grid" style="grid-template-columns:repeat(3,1fr);margin-bottom:18px;">
+        <div class="metric-card ok"><div class="metric-label">Itens em estoque OK</div><div class="metric-value">9</div></div>
+        <div class="metric-card warn"><div class="metric-label">Ponto de pedido</div><div class="metric-value">2</div><div class="metric-sub">MAT-001, MAT-008</div></div>
+        <div class="metric-card danger"><div class="metric-label">Abaixo do mínimo</div><div class="metric-value">4</div><div class="metric-sub">Reposição urgente</div></div>
+      </div>
+
+      <div class="table-wrap">
+        <table class="data-table">
+          <thead>
+            <tr><th>Código</th><th>Descrição</th><th>Categoria</th><th>Un.</th><th>Qtd Atual</th><th>Mín</th><th>Máx</th><th>Vlr. Unit.</th><th>Vlr. Total</th><th>Fornecedor</th><th>Lead (dias)</th><th>Status</th></tr>
+          </thead>
+          <tbody>
+            <tr><td><code>MAT-001</code></td><td>Rolamento 6205-2RS</td><td>Rolamentos</td><td>Pç</td><td>8</td><td>5</td><td>20</td><td>R$ 45,00</td><td>R$ 360,00</td><td>NSK Brasil</td><td>7</td><td><span class="badge badge-amber">Ponto de Pedido</span></td></tr>
+            <tr><td><code>MAT-002</code></td><td>Rolamento 6306-2RS</td><td>Rolamentos</td><td>Pç</td><td>3</td><td>5</td><td>15</td><td>R$ 68,00</td><td>R$ 204,00</td><td>NSK Brasil</td><td>7</td><td><span class="badge badge-red">Abaixo do Mínimo</span></td></tr>
+            <tr><td><code>MAT-003</code></td><td>Óleo Lubrificante ISO 68</td><td>Lubrificantes</td><td>L</td><td>45</td><td>20</td><td>100</td><td>R$ 28,50</td><td>R$ 1.282,50</td><td>Ipiranga</td><td>3</td><td><span class="badge badge-green">OK</span></td></tr>
+            <tr><td><code>MAT-004</code></td><td>Graxa Litio EP2</td><td>Lubrificantes</td><td>Kg</td><td>12</td><td>5</td><td>30</td><td>R$ 35,00</td><td>R$ 420,00</td><td>Texaco</td><td>5</td><td><span class="badge badge-green">OK</span></td></tr>
+            <tr><td><code>MAT-005</code></td><td>Correia V B-80</td><td>Correias</td><td>Pç</td><td>6</td><td>3</td><td>12</td><td>R$ 42,00</td><td>R$ 252,00</td><td>Gates</td><td>10</td><td><span class="badge badge-green">OK</span></td></tr>
+            <tr><td><code>MAT-006</code></td><td>Correia V B-90</td><td>Correias</td><td>Pç</td><td>2</td><td>3</td><td>10</td><td>R$ 48,00</td><td>R$ 96,00</td><td>Gates</td><td>10</td><td><span class="badge badge-red">Abaixo do Mínimo</span></td></tr>
+            <tr><td><code>MAT-007</code></td><td>Vedação Mecânica 25mm</td><td>Vedações</td><td>Pç</td><td>4</td><td>2</td><td>10</td><td>R$ 185,00</td><td>R$ 740,00</td><td>SKF</td><td>15</td><td><span class="badge badge-green">OK</span></td></tr>
+            <tr><td><code>MAT-008</code></td><td>Filtro de Ar Comp. GA37</td><td>Filtros</td><td>Pç</td><td>3</td><td>2</td><td>8</td><td>R$ 320,00</td><td>R$ 960,00</td><td>Atlas Copco</td><td>20</td><td><span class="badge badge-amber">Ponto de Pedido</span></td></tr>
+            <tr><td><code>MAT-009</code></td><td>Filtro de Óleo Comp. GA37</td><td>Filtros</td><td>Pç</td><td>2</td><td>2</td><td>6</td><td>R$ 285,00</td><td>R$ 570,00</td><td>Atlas Copco</td><td>20</td><td><span class="badge badge-red">Abaixo do Mínimo</span></td></tr>
+            <tr><td><code>MAT-010</code></td><td>Parafuso Inox M12x50</td><td>Fixação</td><td>Pç</td><td>120</td><td>50</td><td>300</td><td>R$ 2,80</td><td>R$ 336,00</td><td>Inox Brasil</td><td>5</td><td><span class="badge badge-green">OK</span></td></tr>
+            <tr><td><code>MAT-011</code></td><td>Disjuntor 3P 40A</td><td>Elétrico</td><td>Pç</td><td>5</td><td>3</td><td>12</td><td>R$ 125,00</td><td>R$ 625,00</td><td>Schneider</td><td>7</td><td><span class="badge badge-green">OK</span></td></tr>
+            <tr><td><code>MAT-012</code></td><td>Cabo Elétrico 4mm²</td><td>Elétrico</td><td>m</td><td>80</td><td>30</td><td>200</td><td>R$ 4,20</td><td>R$ 336,00</td><td>Prysmian</td><td>3</td><td><span class="badge badge-green">OK</span></td></tr>
+            <tr><td><code>MAT-013</code></td><td>Mangueira Hidráulica 3/8"</td><td>Hidráulica</td><td>m</td><td>15</td><td>5</td><td>30</td><td>R$ 38,00</td><td>R$ 570,00</td><td>Parker</td><td>10</td><td><span class="badge badge-green">OK</span></td></tr>
+            <tr><td><code>MAT-014</code></td><td>Junta de Vedação NBR</td><td>Vedações</td><td>Pç</td><td>25</td><td>10</td><td>50</td><td>R$ 12,50</td><td>R$ 312,50</td><td>Freudenberg</td><td>7</td><td><span class="badge badge-green">OK</span></td></tr>
+            <tr><td><code>MAT-015</code></td><td>Sensor Indutivo M18</td><td>Automação</td><td>Pç</td><td>2</td><td>2</td><td>8</td><td>R$ 245,00</td><td>R$ 490,00</td><td>Pepperl+Fuchs</td><td>14</td><td><span class="badge badge-red">Abaixo do Mínimo</span></td></tr>
+          </tbody>
+        </table>
+      </div>
+      <div class="total-row">Valor total do estoque: <span>R$ 7.554,00</span></div>
+    </div>
+
+  </div><!-- /main -->
+</div><!-- /layout -->
+
+<script>
+  const titles = {
+    dashboard:    'Dashboard Executivo',
+    os:           'Ordens de Serviço',
+    kpi:          'Indicadores KPI',
+    equipamentos: 'Cadastro de Equipamentos',
+    preventivo:   'Plano Preventivo 2026',
+    custos:       'Controle de Custos',
+    estoque:      'Controle de Estoque',
+  };
+
+  function switchPanel(id, btn) {
+    document.querySelectorAll('.panel').forEach(p => p.classList.remove('active'));
+    document.querySelectorAll('.nav-item').forEach(b => b.classList.remove('active'));
+    document.getElementById('panel-' + id).classList.add('active');
+    btn.classList.add('active');
+    document.getElementById('topbar-title').textContent = titles[id] || id;
+  }
+
+  function filterOS(btn, status) {
+    document.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
+    document.querySelectorAll('#osTable tbody tr').forEach(tr => {
+      tr.style.display = (status === 'all' || tr.dataset.status === status) ? '' : 'none';
+    });
+  }
+
+  const base = { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } } };
+
+  new Chart(document.getElementById('chartTipo'), {
+    type: 'doughnut',
+    data: {
+      labels: ['Corretiva', 'Preventiva', 'Preditiva', 'Melhoria'],
+      datasets: [{
+        data: [26, 22, 7, 5],
+        backgroundColor: ['#1a5fa8', '#10b981', '#f59e0b', '#8b5cf6'],
+        borderWidth: 3,
+        borderColor: '#ffffff'
+      }]
+    },
+    options: { ...base, cutout: '62%' }
+  });
+
+  new Chart(document.getElementById('chartArea'), {
+    type: 'bar',
+    data: {
+      labels: ['Utilidades', 'Prod. A', 'Prod. B', 'Prensa', 'Elétrica', 'Qualidade', 'Fundição'],
+      datasets: [{
+        data: [18, 14, 12, 8, 5, 2, 1],
+        backgroundColor: ['#1a5fa8','#10b981','#f59e0b','#1a5fa8','#8b5cf6','#0ea5e9','#ec4899'],
+        borderRadius: 5,
+        borderSkipped: false
+      }]
+    },
+    options: {
+      ...base,
+      scales: {
+        x: { ticks: { font: { size: 11 }, color: '#64748b' }, grid: { display: false } },
+        y: { ticks: { font: { size: 11 }, color: '#64748b' }, grid: { color: 'rgba(0,0,0,0.05)' } }
+      }
+    }
+  });
+
+  new Chart(document.getElementById('chartEvolucao'), {
+    type: 'line',
+    data: {
+      labels: ['Janeiro', 'Fevereiro'],
+      datasets: [
+        { label: 'OS Abertas',    data: [28, 32], borderColor: '#1a5fa8', backgroundColor: 'rgba(26,95,168,.12)', tension: .4, fill: true, pointRadius: 6, pointBackgroundColor: '#1a5fa8' },
+        { label: 'OS Concluídas', data: [25, 30], borderColor: '#10b981', backgroundColor: 'rgba(16,185,129,.1)', tension: .4, fill: true, borderDash: [5,4], pointRadius: 6, pointBackgroundColor: '#10b981' }
+      ]
+    },
+    options: {
+      ...base,
+      scales: {
+        x: { ticks: { font: { size: 12 }, color: '#64748b' }, grid: { display: false } },
+        y: { ticks: { font: { size: 11 }, color: '#64748b' }, grid: { color: 'rgba(0,0,0,0.05)' }, min: 20, max: 38 }
+      }
+    }
+  });
+
+  new Chart(document.getElementById('chartHH'), {
+    type: 'bar',
+    data: {
+      labels: ['Janeiro', 'Fevereiro'],
+      datasets: [
+        { label: 'HH Previsto', data: [180, 200], backgroundColor: '#1a5fa8', borderRadius: 5, borderSkipped: false },
+        { label: 'HH Real',     data: [190, 205], backgroundColor: '#f59e0b', borderRadius: 5, borderSkipped: false }
+      ]
+    },
+    options: {
+      ...base,
+      scales: {
+        x: { ticks: { font: { size: 12 }, color: '#64748b' }, grid: { display: false } },
+        y: { ticks: { font: { size: 11 }, color: '#64748b' }, grid: { color: 'rgba(0,0,0,0.05)' }, min: 160 }
+      }
+    }
+  });
+
+  new Chart(document.getElementById('chartCustos'), {
+    type: 'bar',
+    data: {
+      labels: ['OS-001','OS-002','OS-003','OS-004','OS-005','OS-006','OS-007'],
+      datasets: [
+        { label: 'Mão de Obra', data: [480,360,720,600,480,960,300],  backgroundColor: '#1a5fa8' },
+        { label: 'Material',    data: [1250,180,850,320,220,4800,650], backgroundColor: '#f59e0b' },
+        { label: 'Terceiros',   data: [0,0,0,2500,0,0,0],             backgroundColor: '#ef4444' },
+        { label: 'Outros',      data: [0,0,0,0,0,500,0],              backgroundColor: '#8b5cf6' }
+      ]
+    },
+    options: {
+      ...base,
+      scales: {
+        x: { stacked: true, ticks: { font: { size: 11 }, color: '#64748b', autoSkip: false }, grid: { display: false } },
+        y: { stacked: true, ticks: { font: { size: 11 }, color: '#64748b' }, grid: { color: 'rgba(0,0,0,0.05)' } }
+      }
+    }
+  });
+</script>
+</body>
+</html>
